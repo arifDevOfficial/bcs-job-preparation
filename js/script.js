@@ -10,6 +10,7 @@ document.getElementById('greetBtn').addEventListener('click', () => {
 
 document.getElementById('plus').addEventListener('click', () => { count++; countEl.textContent = count; });
 document.getElementById('minus').addEventListener('click', () => { count--; countEl.textContent = count; });
+document.getElementById('resetBtn').addEventListener('click', () => { count = 0; countEl.textContent = count; });
 
 document.getElementById('themeBtn').addEventListener('click', () => {
   document.body.classList.toggle('dark');
