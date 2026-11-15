@@ -24,8 +24,17 @@
     </div>
     <div><button id="resetBtn" class="secondary">রিসেট</button></div>
 
+    <hr>
+
+    <h2>মেসেজ (Supabase)</h2>
+    <input type="text" id="messageInput" placeholder="একটি মেসেজ লিখুন" maxlength="200">
+    <button id="saveMsgBtn">মেসেজ সেভ করো</button>
+    <p id="msgStatus" class="status"></p>
+    <ul id="messageList" class="messages"></ul>
+
     <button id="themeBtn" class="secondary">ডার্ক/লাইট মোড</button>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>
