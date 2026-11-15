@@ -12,3 +12,7 @@ button { background:var(--accent); color:#fff; border:none; padding:12px 18px; b
 button.secondary { margin-top:20px; background:transparent; color:var(--accent); border:1px solid var(--accent); }
 .counter { display:flex; align-items:center; justify-content:center; gap:20px; }
 #count { font-size:32px; min-width:48px; }
+.status { min-height:1.2em; font-size:14px; }
+.messages { list-style:none; padding:0; margin:0; text-align:left; }
+.messages li { padding:8px 0; border-top:1px solid #9ca3af; word-break:break-word; }
+.messages small { display:block; opacity:.7; }
