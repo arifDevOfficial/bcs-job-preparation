@@ -16,3 +16,4 @@ button.secondary { margin-top:20px; background:transparent; color:var(--accent);
 .messages { list-style:none; padding:0; margin:0; text-align:left; }
 .messages li { padding:8px 0; border-top:1px solid #9ca3af; word-break:break-word; }
 .messages small { display:block; opacity:.7; }
+#userId { font-size:13px; word-break:break-all; }
