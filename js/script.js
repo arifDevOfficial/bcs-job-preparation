@@ -150,3 +150,145 @@ if (!db) {
     authStatus.textContent = error ? 'লগআউট করা যায়নি। আবার চেষ্টা করুন।' : 'লগআউট হয়েছে।';
   });
 }
+
+// ===== Personal Notes (user_notes) =====
+// মূল নিরাপত্তা Database-এর RLS। Frontend কখনো user_id পাঠায় না (default auth.uid() বসায়)।
+const notesSection = document.getElementById('notesSection');
+const noteInput = document.getElementById('noteInput');
+const saveNoteBtn = document.getElementById('saveNoteBtn');
+const noteStatus = document.getElementById('noteStatus');
+const notesList = document.getElementById('notesList');
+
+let notesUserId = null;   // বর্তমানে কোন User-এর Notes দেখানো হচ্ছে
+let editingNoteId = null; // কোন Note Edit হচ্ছে
+let notesCache = [];
+
+function noteErrorMessage(error, fallback) {
+  const msg = (error.message || '').toLowerCase();
+  if (error.code === '42501' || msg.includes('jwt') || msg.includes('row-level security')) return 'অনুমতি নেই। আবার লগইন করে চেষ্টা করুন।';
+  if (msg.includes('fetch') || msg.includes('network')) return 'নেটওয়ার্ক সমস্যা। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।';
+  return fallback;
+}
+
+function renderNotes() {
+  notesList.innerHTML = '';
+  notesCache.forEach((row) => {
+    const li = document.createElement('li');
+    if (row.id === editingNoteId) {
+      const editInput = document.createElement('input');
+      editInput.type = 'text';
+      editInput.maxLength = 500;
+      editInput.value = row.note;
+      const actions = document.createElement('div');
+      actions.className = 'note-actions';
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = 'সেভ';
+      saveBtn.addEventListener('click', () => updateNote(row.id, editInput.value, saveBtn));
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'বাতিল';
+      cancelBtn.className = 'secondary';
+      cancelBtn.addEventListener('click', () => { editingNoteId = null; renderNotes(); });
+      actions.append(saveBtn, cancelBtn);
+      li.append(editInput, actions);
+    } else {
+      li.textContent = row.note;
+      const time = document.createElement('small');
+      time.textContent = new Date(row.created_at).toLocaleString('bn-BD');
+      const actions = document.createElement('div');
+      actions.className = 'note-actions';
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'এডিট';
+      editBtn.className = 'secondary';
+      editBtn.addEventListener('click', () => { editingNoteId = row.id; renderNotes(); });
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'ডিলিট';
+      delBtn.className = 'secondary';
+      delBtn.addEventListener('click', () => deleteNote(row.id, delBtn));
+      actions.append(editBtn, delBtn);
+      li.append(time, actions);
+    }
+    notesList.appendChild(li);
+  });
+}
+
+async function loadNotes() {
+  const uid = notesUserId;
+  if (!uid) return;
+  const { data, error } = await db
+    .from('user_notes')
+    .select('id, note, created_at')
+    .order('id', { ascending: false })
+    .limit(50);
+  if (notesUserId !== uid) return; // লোড চলার সময় Logout হলে কিছু দেখানো হবে না
+  if (error) { noteStatus.textContent = noteErrorMessage(error, 'নোট লোড করা যায়নি।'); return; }
+  notesCache = data;
+  renderNotes();
+  noteStatus.textContent = data.length ? '' : 'এখনো কোনো নোট নেই।';
+}
+
+async function updateNote(id, text, btn) {
+  const note = text.trim();
+  if (!note) { noteStatus.textContent = 'নোট খালি রাখা যাবে না।'; return; }
+  btn.disabled = true;
+  const uid = notesUserId;
+  const { data, error } = await db.from('user_notes').update({ note }).eq('id', id).select('id');
+  if (notesUserId !== uid) return;
+  btn.disabled = false;
+  if (error) { noteStatus.textContent = noteErrorMessage(error, 'নোট আপডেট করা যায়নি।'); return; }
+  if (!data || data.length === 0) { noteStatus.textContent = 'নোটটি আপডেট করা যায়নি।'; return; }
+  editingNoteId = null;
+  await loadNotes();
+  noteStatus.textContent = 'নোট আপডেট হয়েছে ✅';
+}
+
+async function deleteNote(id, btn) {
+  if (!confirm('এই নোটটি মুছে ফেলবেন?')) return;
+  btn.disabled = true;
+  const uid = notesUserId;
+  const { data, error } = await db.from('user_notes').delete().eq('id', id).select('id');
+  if (notesUserId !== uid) return;
+  btn.disabled = false;
+  if (error) { noteStatus.textContent = noteErrorMessage(error, 'নোট মোছা যায়নি।'); return; }
+  if (!data || data.length === 0) { noteStatus.textContent = 'নোটটি মোছা যায়নি।'; return; }
+  await loadNotes();
+  noteStatus.textContent = 'নোট মুছে ফেলা হয়েছে।';
+}
+
+function handleNotesSession(session) {
+  if (session && session.user) {
+    if (notesUserId !== session.user.id) {
+      notesUserId = session.user.id;
+      notesSection.hidden = false;
+      setTimeout(loadNotes, 0); // onAuthStateChange-এর ভেতরে সরাসরি Supabase Call এড়াতে
+    }
+  } else {
+    // Logout: ব্যক্তিগত ডেটা স্ক্রিন ও মেমরি থেকে মুছে ফেলা
+    notesUserId = null;
+    editingNoteId = null;
+    notesCache = [];
+    notesList.innerHTML = '';
+    noteInput.value = '';
+    noteStatus.textContent = '';
+    saveNoteBtn.disabled = false;
+    notesSection.hidden = true;
+  }
+}
+
+if (db) {
+  db.auth.getSession().then(({ data }) => handleNotesSession(data.session));
+  db.auth.onAuthStateChange((_event, session) => handleNotesSession(session));
+
+  saveNoteBtn.addEventListener('click', async () => {
+    const note = noteInput.value.trim();
+    if (!note) { noteStatus.textContent = 'অনুগ্রহ করে একটি নোট লিখুন।'; return; }
+    saveNoteBtn.disabled = true;
+    const uid = notesUserId;
+    const { error } = await db.from('user_notes').insert({ note }); // user_id পাঠানো হয় না
+    if (notesUserId !== uid) return;
+    saveNoteBtn.disabled = false;
+    if (error) { noteStatus.textContent = noteErrorMessage(error, 'নোট সেভ করা যায়নি।'); return; }
+    noteInput.value = '';
+    await loadNotes();
+    noteStatus.textContent = 'নোট সেভ হয়েছে ✅';
+  });
+}
