@@ -26,6 +26,22 @@
 
     <hr>
 
+    <h2>অ্যাকাউন্ট</h2>
+    <div id="authForm" hidden>
+      <input type="email" id="authEmail" placeholder="ইমেইল" autocomplete="email">
+      <input type="password" id="authPassword" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)" autocomplete="current-password">
+      <button id="loginBtn">লগইন</button>
+      <button id="signupBtn" class="secondary">সাইন আপ</button>
+    </div>
+    <div id="userInfo" hidden>
+      <p>ইমেইল: <span id="userEmail"></span></p>
+      <p>UUID: <span id="userId"></span></p>
+      <button id="logoutBtn" class="secondary">লগআউট</button>
+    </div>
+    <p id="authStatus" class="status"></p>
+
+    <hr>
+
     <h2>মেসেজ (Supabase)</h2>
     <input type="text" id="messageInput" placeholder="একটি মেসেজ লিখুন" maxlength="200">
     <button id="saveMsgBtn">মেসেজ সেভ করো</button>
