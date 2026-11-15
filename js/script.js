@@ -61,3 +61,92 @@ document.getElementById('saveMsgBtn').addEventListener('click', async () => {
 });
 
 loadMessages();
+
+// ===== Supabase Auth: Sign Up / Login / Logout / Session =====
+const authForm = document.getElementById('authForm');
+const userInfo = document.getElementById('userInfo');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authStatus = document.getElementById('authStatus');
+const loginBtn = document.getElementById('loginBtn');
+const signupBtn = document.getElementById('signupBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+function showAuthUI(session) {
+  if (session && session.user) {
+    document.getElementById('userEmail').textContent = session.user.email;
+    document.getElementById('userId').textContent = session.user.id;
+    authForm.hidden = true;
+    userInfo.hidden = false;
+  } else {
+    userInfo.hidden = true;
+    authForm.hidden = false;
+  }
+}
+
+function authErrorMessage(error) {
+  const code = (error.code || '').toLowerCase();
+  const msg = (error.message || '').toLowerCase();
+  if (code === 'invalid_credentials' || msg.includes('invalid login credentials')) return 'ইমেইল বা পাসওয়ার্ড ভুল।';
+  if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) return 'আগে আপনার ইমেইল যাচাই (Confirm) করুন।';
+  if (code === 'user_already_exists' || msg.includes('already registered')) return 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা হয়েছে।';
+  if (code === 'weak_password' || msg.includes('password should be')) return 'পাসওয়ার্ড দুর্বল। কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।';
+  if (code === 'validation_failed' || msg.includes('invalid email') || msg.includes('unable to validate email')) return 'ইমেইল ঠিকানাটি সঠিক নয়।';
+  if (error.status === 429 || msg.includes('rate limit')) return 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+  if (msg.includes('fetch') || msg.includes('network')) return 'নেটওয়ার্ক সমস্যা। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।';
+  return 'কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+}
+
+function readAuthInputs(isSignup) {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || !password) { authStatus.textContent = 'ইমেইল ও পাসওয়ার্ড দুটোই লিখুন।'; return null; }
+  if (isSignup && password.length < 6) { authStatus.textContent = 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।'; return null; }
+  return { email, password };
+}
+
+function setAuthBusy(busy) { loginBtn.disabled = busy; signupBtn.disabled = busy; }
+
+if (!db) {
+  authStatus.textContent = 'Supabase সেট করা হয়নি, তাই লগইন করা যাবে না।';
+} else {
+  // Page Refresh করলে সংরক্ষিত Session ফিরিয়ে আনা
+  db.auth.getSession().then(({ data }) => showAuthUI(data.session));
+  // Login / Logout / Token Refresh হলে UI আপডেট (এখানে শুধু DOM আপডেট করা হয়)
+  db.auth.onAuthStateChange((_event, session) => showAuthUI(session));
+
+  loginBtn.addEventListener('click', async () => {
+    const input = readAuthInputs(false);
+    if (!input) return;
+    setAuthBusy(true);
+    authStatus.textContent = 'লগইন হচ্ছে...';
+    const { error } = await db.auth.signInWithPassword(input);
+    setAuthBusy(false);
+    if (error) { authStatus.textContent = authErrorMessage(error); return; }
+    authPassword.value = '';
+    authStatus.textContent = 'লগইন সফল হয়েছে ✅';
+  });
+
+  signupBtn.addEventListener('click', async () => {
+    const input = readAuthInputs(true);
+    if (!input) return;
+    setAuthBusy(true);
+    authStatus.textContent = 'অ্যাকাউন্ট তৈরি হচ্ছে...';
+    const { data, error } = await db.auth.signUp(input);
+    setAuthBusy(false);
+    if (error) { authStatus.textContent = authErrorMessage(error); return; }
+    authPassword.value = '';
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      authStatus.textContent = 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা হয়েছে।';
+    } else if (data.session) {
+      authStatus.textContent = 'সাইন আপ সফল হয়েছে ✅';
+    } else {
+      authStatus.textContent = 'সাইন আপ হয়েছে। আপনার ইমেইলে পাঠানো লিংকে ক্লিক করে যাচাই করুন, তারপর লগইন করুন।';
+    }
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    const { error } = await db.auth.signOut();
+    authStatus.textContent = error ? 'লগআউট করা যায়নি। আবার চেষ্টা করুন।' : 'লগআউট হয়েছে।';
+  });
+}
