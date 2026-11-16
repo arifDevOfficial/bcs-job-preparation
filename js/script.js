@@ -292,3 +292,27 @@ if (db) {
     noteStatus.textContent = 'নোট সেভ হয়েছে ✅';
   });
 }
+
+// ===== Google Sign-In (Supabase OAuth, বিদ্যমান db Client দিয়ে) =====
+// Client Secret Supabase Dashboard-এ আছে; Frontend-এ কোনো Secret নেই।
+// Login সফল হলে Session আগের মতোই তৈরি হয় এবং বিদ্যমান onAuthStateChange তা শনাক্ত করে।
+if (db) {
+  // Google থেকে ফেরার সময় Error থাকলে (যেমন বাতিল বা অনুমোদিত Test User নয়) বার্তা দেখানো
+  const returnedParams = new URLSearchParams(window.location.search + '&' + window.location.hash.replace(/^#/, ''));
+  if (returnedParams.get('error')) {
+    authStatus.textContent = 'Google লগইন সম্পন্ন হয়নি (বাতিল করা হয়েছে, অথবা এই Gmail অনুমোদিত Test User নয়)।';
+    history.replaceState(null, '', window.location.pathname);
+  }
+
+  document.getElementById('googleBtn').addEventListener('click', async () => {
+    authStatus.textContent = 'Google-এ নেওয়া হচ্ছে...';
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname, // এই Demo Website-এ ফিরে আসবে
+        queryParams: { prompt: 'select_account' }                      // প্রতিবার Account বেছে নেওয়ার সুযোগ
+      }
+    });
+    if (error) authStatus.textContent = 'Google সাইন ইন শুরু করা যায়নি। আবার চেষ্টা করুন।';
+  });
+}
