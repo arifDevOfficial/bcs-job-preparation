@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCQ প্র্যাকটিস</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/practice.css">
+</head>
+<body>
+  <main class="card practice">
+    <a class="home-link" href="index.html">← হোম</a>
+    <h1>MCQ প্র্যাকটিস</h1>
+
+    <p id="status" class="status" role="status"></p>
+    <div id="errorBox" class="error-box" hidden>
+      <p id="errorText"></p>
+      <button id="retryBtn" class="secondary">আবার চেষ্টা করো</button>
+    </div>
+
+    <!-- ১) বিষয় -->
+    <section id="subjectScreen">
+      <h2>বিষয় বেছে নিন</h2>
+      <div id="subjectList" class="choice-list"></div>
+    </section>
+
+    <!-- ২) অধ্যায় -->
+    <section id="chapterScreen" hidden>
+      <button id="backToSubjects" class="secondary back-btn">← বিষয়</button>
+      <h2 id="chapterTitle">অধ্যায় বেছে নিন</h2>
+      <div id="chapterList" class="choice-list"></div>
+    </section>
+
+    <!-- ৩) প্রশ্ন -->
+    <section id="quizScreen" hidden>
+      <button id="backToChapters" class="secondary back-btn">← অধ্যায়</button>
+      <p id="progress" class="progress"></p>
+      <h2 id="questionText" class="question"></h2>
+      <div id="optionList" class="choice-list"></div>
+      <p id="feedback" class="feedback" role="status"></p>
+      <button id="nextBtn" hidden>পরের প্রশ্ন</button>
+    </section>
+
+    <!-- ৪) ফলাফল -->
+    <section id="resultScreen" hidden>
+      <h2>ফলাফল</h2>
+      <p id="scoreText" class="score"></p>
+      <p id="scoreMsg"></p>
+      <button id="retryQuizBtn">আবার চেষ্টা করো</button>
+      <button id="otherChapterBtn" class="secondary">অন্য অধ্যায়</button>
+      <button id="otherSubjectBtn" class="secondary">বিষয় তালিকা</button>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/practice.js"></script>
+</body>
+</html>
